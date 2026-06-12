@@ -31,6 +31,7 @@ import {
   isLastLessonInModule,
   getModuleXpTotal,
 } from "~/services/xpService";
+import { recordStreakActivity } from "~/services/streakService";
 import { XpSourceType } from "~/db/schema";
 import {
   createComment,
@@ -356,6 +357,7 @@ export async function action({ params, request }: Route.ActionArgs) {
       sourceType: XpSourceType.LessonCompletion,
       sourceId: lessonId,
     });
+    recordStreakActivity(currentUserId);
 
     const { isLast, moduleId } = isLastLessonInModule(lessonId);
     let moduleCompletion: { moduleXp: number } | null = null;

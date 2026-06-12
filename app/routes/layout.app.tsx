@@ -20,6 +20,7 @@ import {
 import { UserRole } from "~/db/schema";
 import { getTotalXp } from "~/services/xpService";
 import { getProgressToNextLevel } from "~/lib/gamification";
+import { getStreakData } from "~/services/streakService";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const users = getAllUsers();
@@ -58,6 +59,8 @@ export async function loader({ request }: Route.LoaderArgs) {
     isStudent && currentUserId
       ? getProgressToNextLevel(getTotalXp(currentUserId))
       : null;
+  const streak =
+    isStudent && currentUserId ? getStreakData(currentUserId) : null;
 
   const isInstructor = currentUser?.role === UserRole.Instructor;
   const userIsTeamAdmin = currentUserId ? isTeamAdmin(currentUserId) : false;
@@ -87,6 +90,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     notifications,
     notificationUnreadCount,
     gamification,
+    streak,
   };
 }
 
@@ -102,6 +106,7 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
     notifications,
     notificationUnreadCount,
     gamification,
+    streak,
   } = loaderData;
 
   return (
@@ -113,6 +118,7 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
         notifications={notifications}
         notificationUnreadCount={notificationUnreadCount}
         gamification={gamification}
+        streak={streak}
       />
       <main className="flex-1 overflow-y-auto">
         <Outlet />

@@ -10,6 +10,7 @@ import {
 import { getCurrentUserId } from "~/lib/session";
 import { getTotalXp } from "~/services/xpService";
 import { getProgressToNextLevel } from "~/lib/gamification";
+import { getStreakData } from "~/services/streakService";
 import {
   Card,
   CardContent,
@@ -22,6 +23,7 @@ import {
   AlertTriangle,
   BookOpen,
   CheckCircle2,
+  Flame,
   GraduationCap,
   PlayCircle,
   Star,
@@ -80,11 +82,13 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const totalXp = getTotalXp(currentUserId);
   const xpProgress = getProgressToNextLevel(totalXp);
+  const streak = getStreakData(currentUserId);
 
   return {
     inProgressCourses,
     completedCourses,
     gamification: { totalXp, ...xpProgress },
+    streak,
   };
 }
 
@@ -128,7 +132,8 @@ export function HydrateFallback() {
 }
 
 export default function Dashboard({ loaderData }: Route.ComponentProps) {
-  const { inProgressCourses, completedCourses, gamification } = loaderData;
+  const { inProgressCourses, completedCourses, gamification, streak } =
+    loaderData;
   const totalCourses = inProgressCourses.length + completedCourses.length;
 
   return (
@@ -150,35 +155,60 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
       </div>
 
       {/* XP & Level Summary */}
-      <Card className="mb-8">
-        <CardContent className="flex items-center gap-6 py-4">
-          <div className="flex size-12 items-center justify-center rounded-full bg-primary/10">
-            <Star className="size-6 text-primary" />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-3">
-              <span className="text-lg font-bold">
-                Level {gamification.level}
-              </span>
-              <span className="text-sm text-muted-foreground">
-                {gamification.totalXp} XP total
-              </span>
+      <div className="mb-8 grid gap-4 sm:grid-cols-2">
+        <Card>
+          <CardContent className="flex items-center gap-6 py-4">
+            <div className="flex size-12 items-center justify-center rounded-full bg-primary/10">
+              <Star className="size-6 text-primary" />
             </div>
-            <div className="mt-2 flex items-center gap-3">
-              <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full rounded-full bg-primary transition-all"
-                  style={{ width: `${gamification.progressPercent}%` }}
-                />
+            <div className="flex-1">
+              <div className="flex items-center gap-3">
+                <span className="text-lg font-bold">
+                  Level {gamification.level}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {gamification.totalXp} XP total
+                </span>
               </div>
-              <span className="shrink-0 text-xs text-muted-foreground">
-                {gamification.currentLevelXp} / {gamification.xpForNextLevel} XP
-                to next level
-              </span>
+              <div className="mt-2 flex items-center gap-3">
+                <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all"
+                    style={{ width: `${gamification.progressPercent}%` }}
+                  />
+                </div>
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  {gamification.currentLevelXp} / {gamification.xpForNextLevel}{" "}
+                  XP to next level
+                </span>
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="flex items-center gap-6 py-4">
+            <div className="flex size-12 items-center justify-center rounded-full bg-orange-500/10">
+              <Flame className="size-6 text-orange-500" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-3">
+                <span className="text-lg font-bold">
+                  {streak.currentStreak} day
+                  {streak.currentStreak !== 1 ? "s" : ""}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  current streak
+                </span>
+              </div>
+              <div className="mt-2 text-sm text-muted-foreground">
+                Longest streak: {streak.longestStreak} day
+                {streak.longestStreak !== 1 ? "s" : ""}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {totalCourses === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">

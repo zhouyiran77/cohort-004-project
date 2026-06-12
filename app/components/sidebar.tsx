@@ -6,6 +6,7 @@ import { UserAvatar } from "~/components/user-avatar";
 import {
   BarChart3,
   BookOpen,
+  Flame,
   LayoutDashboard,
   GraduationCap,
   Shield,
@@ -52,6 +53,11 @@ interface GamificationData {
   progressPercent: number;
 }
 
+interface StreakData {
+  currentStreak: number;
+  longestStreak: number;
+}
+
 interface SidebarProps {
   currentUser: CurrentUser | null;
   recentCourses?: RecentCourse[];
@@ -59,6 +65,7 @@ interface SidebarProps {
   notifications?: NotificationItem[];
   notificationUnreadCount?: number;
   gamification?: GamificationData | null;
+  streak?: StreakData | null;
 }
 
 interface NavItem {
@@ -132,6 +139,7 @@ export function Sidebar({
   notifications = [],
   notificationUnreadCount = 0,
   gamification = null,
+  streak = null,
 }: SidebarProps) {
   const currentUserRole = currentUser?.role ?? null;
   const [isDark, setIsDark] = useState(false);
@@ -216,6 +224,18 @@ export function Sidebar({
                 style={{ width: `${gamification.progressPercent}%` }}
               />
             </div>
+          </div>
+        </div>
+      )}
+
+      {streak && (
+        <div className="border-t border-sidebar-border p-3">
+          <div className="flex items-center gap-2 px-3">
+            <Flame className="size-4 text-orange-500" />
+            <span className="text-sm font-semibold">
+              {streak.currentStreak} day{streak.currentStreak !== 1 ? "s" : ""}
+            </span>
+            <span className="text-xs text-sidebar-foreground/50">streak</span>
           </div>
         </div>
       )}
