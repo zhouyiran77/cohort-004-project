@@ -48,6 +48,7 @@ async function seed() {
     DROP TABLE IF EXISTS video_watch_events;
     DROP TABLE IF EXISTS answers;
     DROP TABLE IF EXISTS questions;
+    DROP TABLE IF EXISTS course_ratings;
     DROP TABLE IF EXISTS quiz_answers;
     DROP TABLE IF EXISTS quiz_attempts;
     DROP TABLE IF EXISTS quiz_options;
@@ -1729,6 +1730,21 @@ You've completed the Building REST APIs course. You now have the skills to build
     `Created 1 team with Bossy McBossface as admin, 1 team purchase, and ${seededCoupons.length} coupons (2 redeemed, 3 available).`
   );
 
+  // ─── Course Ratings ───
+
+  db.insert(schema.courseRatings)
+    .values([
+      { userId: students[0].id, courseId: course1.id, rating: 5, createdAt: daysAgo(20), updatedAt: daysAgo(20) },
+      { userId: students[0].id, courseId: course2.id, rating: 4, createdAt: daysAgo(15), updatedAt: daysAgo(15) },
+      { userId: students[1].id, courseId: course1.id, rating: 4, createdAt: daysAgo(12), updatedAt: daysAgo(12) },
+      { userId: students[2].id, courseId: course1.id, rating: 5, createdAt: daysAgo(10), updatedAt: daysAgo(10) },
+      { userId: students[2].id, courseId: course2.id, rating: 3, createdAt: daysAgo(8), updatedAt: daysAgo(8) },
+      { userId: students[3].id, courseId: course2.id, rating: 4, createdAt: daysAgo(5), updatedAt: daysAgo(5) },
+    ])
+    .run();
+
+  console.log("Created 6 course ratings.");
+
   console.log("\n✓ Seed complete!");
   console.log("  Users: 9 (1 admin, 2 instructors, 6 students)");
   console.log("  Categories: 5");
@@ -1739,6 +1755,7 @@ You've completed the Building REST APIs course. You now have the skills to build
   console.log("  Enrollments: 7");
   console.log("  Purchases: 6 (5 individual + 1 team)");
   console.log("  Teams: 1 (with 5 coupons)");
+  console.log("  Ratings: 6");
 }
 
 seed().catch(console.error);

@@ -12,6 +12,8 @@ import { DevUI } from "~/components/dev-ui";
 import { getAllUsers, getUserById } from "~/services/userService";
 import { getCurrentUserId, getDevCountry } from "~/lib/session";
 import { getCountryTierInfo, COUNTRIES } from "~/lib/ppp";
+import { getAverageRatings } from "~/services/ratingService";
+import { StarRatingDisplay } from "~/components/star-rating";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -22,9 +24,13 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const courses = buildCourseQuery(null, null, CourseStatus.Published, "newest", 50, 0);
+  const courseIds = courses.slice(0, 3).map((c) => c.id);
+  const ratingsMap = getAverageRatings(courseIds);
   const featured = courses.slice(0, 3).map((course) => ({
     ...course,
     lessonCount: getLessonCountForCourse(course.id),
+    ratingAverage: ratingsMap.get(course.id)?.average ?? 0,
+    ratingCount: ratingsMap.get(course.id)?.count ?? 0,
   }));
   const categories = getAllCategories();
   const users = getAllUsers();
@@ -187,15 +193,18 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                       {course.description}
                     </p>
                   </CardContent>
-                  <CardFooter className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <User className="size-3" />
-                      {course.instructorName ?? "Instructor"}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <BookOpen className="size-3" />
-                      {course.lessonCount} lessons
-                    </span>
+                  <CardFooter className="flex flex-col gap-2 text-xs text-muted-foreground">
+                    <div className="flex w-full items-center justify-between">
+                      <span className="flex items-center gap-1">
+                        <User className="size-3" />
+                        {course.instructorName ?? "Instructor"}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <BookOpen className="size-3" />
+                        {course.lessonCount} lessons
+                      </span>
+                    </div>
+                    <StarRatingDisplay average={course.ratingAverage} count={course.ratingCount} />
                   </CardFooter>
                 </Card>
               </Link>
