@@ -41,6 +41,24 @@ export function getCoursesByCategory(categoryId: number) {
     .all();
 }
 
+export function getCourseByLessonId(lessonId: number) {
+  return db
+    .select({
+      id: courses.id,
+      title: courses.title,
+      slug: courses.slug,
+      instructorId: courses.instructorId,
+      categoryId: courses.categoryId,
+      status: courses.status,
+      price: courses.price,
+    })
+    .from(courses)
+    .innerJoin(modules, eq(courses.id, modules.courseId))
+    .innerJoin(lessons, eq(modules.id, lessons.moduleId))
+    .where(eq(lessons.id, lessonId))
+    .get();
+}
+
 export function getCoursesByStatus(status: CourseStatus) {
   return db.select().from(courses).where(eq(courses.status, status)).all();
 }

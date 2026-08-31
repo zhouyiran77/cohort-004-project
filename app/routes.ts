@@ -50,4 +50,11 @@ export default [
   route("api/logout", "routes/api.logout.ts"),
   route("api/video-tracking", "routes/api.video-tracking.ts"),
   route("api/set-dev-country", "routes/api.set-dev-country.ts"),
+  route("api/questions/create", "routes/api.questions.create.ts"),
+  route("api/questions/update", "routes/api.questions.update.ts"),
+  route("api/questions/delete", "routes/api.questions.delete.ts"),
+  route("api/answers/create", "routes/api.answers.create.ts"),
+  route("api/answers/update", "routes/api.answers.update.ts"),
+  route("api/answers/delete", "routes/api.answers.delete.ts"),
+  route("api/answers/accept", "routes/api.answers.accept.ts"),
 ] satisfies RouteConfig;

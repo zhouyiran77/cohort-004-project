@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Link, useFetcher, useNavigate } from "react-router";
+import { Link, useFetcher, useNavigate, useRevalidator } from "react-router";
 import { toast } from "sonner";
 import type { Route } from "./+types/courses.$slug.lessons.$lessonId";
 import {
@@ -28,6 +28,10 @@ import {
 import { computeResult } from "~/services/quizScoringService";
 import { LessonProgressStatus } from "~/db/schema";
 import { Button } from "~/components/ui/button";
+import { QnASection } from "~/components/qna-section";
+import { getQuestionsByLesson } from "~/services/questionService";
+import { getAnswersByQuestion } from "~/services/answerService";
+import { getUserById } from "~/services/userService";
 import { Card, CardContent } from "~/components/ui/card";
 import {
   AlertTriangle,
@@ -138,8 +142,15 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   let lastWatchPosition = 0;
   let watchProgress = 0;
   let lessonProgressMap: Record<number, string> = {};
+  let currentUserRole = "student";
+  let isInstructor = false;
 
   if (currentUserId) {
+    const currentUser = getUserById(currentUserId);
+    if (currentUser) {
+      currentUserRole = currentUser.role;
+    }
+    isInstructor = course.instructorId === currentUserId;
     enrolled = isUserEnrolled(currentUserId, course.id);
 
     if (enrolled) {
@@ -248,11 +259,46 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     }
   }
 
+  const canViewQnA =
+    currentUserId && (enrolled || isInstructor || currentUserRole === "admin");
+
+  const rawQuestions = canViewQnA ? getQuestionsByLesson(lessonId) : [];
+
+  const questions = rawQuestions.map((q) => {
+    const author = getUserById(q.userId);
+    const rawAnswers = getAnswersByQuestion(q.id);
+    const answersWithUsers = rawAnswers.map((a) => {
+      const answerAuthor = getUserById(a.userId);
+      return {
+        ...a,
+        authorName: answerAuthor?.name ?? "Unknown",
+        authorAvatarUrl: answerAuthor?.avatarUrl ?? null,
+        authorRole: answerAuthor?.role ?? "student",
+      };
+    });
+
+    // Sort: accepted answer first, then by creation time
+    const sortedAnswers = answersWithUsers.sort((a, b) => {
+      if (a.id === q.acceptedAnswerId) return -1;
+      if (b.id === q.acceptedAnswerId) return 1;
+      return 0;
+    });
+
+    return {
+      ...q,
+      authorName: author?.name ?? "Unknown",
+      authorAvatarUrl: author?.avatarUrl ?? null,
+      authorRole: author?.role ?? "student",
+      answers: sortedAnswers,
+    };
+  });
+
   return {
     course: {
       id: courseWithDetails.id,
       title: courseWithDetails.title,
       slug: courseWithDetails.slug,
+      instructorId: courseWithDetails.instructorId,
     },
     curriculum: courseWithDetails.modules.map((m) => ({
       id: m.id,
@@ -271,10 +317,13 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     lessonStatus,
     enrolled,
     currentUserId,
+    currentUserRole,
+    isInstructor,
     prevLesson,
     nextLesson,
     quiz,
     bestAttempt,
+    questions,
     lastWatchPosition,
     watchProgress,
     lessonProgressMap,
@@ -372,10 +421,13 @@ export default function LessonViewer({ loaderData }: Route.ComponentProps) {
     lessonStatus,
     enrolled,
     currentUserId,
+    currentUserRole,
+    isInstructor,
     prevLesson,
     nextLesson,
     quiz,
     bestAttempt,
+    questions,
     lastWatchPosition,
     watchProgress,
     lessonProgressMap,
@@ -387,6 +439,7 @@ export default function LessonViewer({ loaderData }: Route.ComponentProps) {
   const fetcher = useFetcher({ key: `mark-complete-${lesson.id}` });
   const quizFetcher = useFetcher({ key: `quiz-${lesson.id}` });
   const navigate = useNavigate();
+  const revalidator = useRevalidator();
 
   const isMarking =
     fetcher.state !== "idle" &&
@@ -545,6 +598,17 @@ export default function LessonViewer({ loaderData }: Route.ComponentProps) {
               isSubmitting={isSubmittingQuiz}
             />
           )}
+
+          {/* Q&A Section */}
+          <QnASection
+            lessonId={lesson.id}
+            questions={questions}
+            currentUserId={currentUserId}
+            currentUserRole={currentUserRole}
+            isInstructor={isInstructor}
+            enrolled={enrolled}
+            onMutate={revalidator.revalidate}
+          />
 
           {/* Mark Complete / Up Next */}
           {enrolled && currentUserId && (

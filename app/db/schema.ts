@@ -253,3 +253,61 @@ export const videoWatchEvents = sqliteTable("video_watch_events", {
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
 });
+
+export enum QuestionStatus {
+  Open = "open",
+  Resolved = "resolved",
+}
+
+export enum AcceptedByRole {
+  Student = "student",
+  Instructor = "instructor",
+}
+
+export const questions = sqliteTable("questions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  lessonId: integer("lesson_id")
+    .notNull()
+    .references(() => lessons.id),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  status: text("status")
+    .notNull()
+    .$type<QuestionStatus>()
+    .default(QuestionStatus.Open),
+  acceptedAnswerId: integer("accepted_answer_id"),
+  acceptedByRole: text("accepted_by_role").$type<AcceptedByRole>(),
+  resolvedAt: text("resolved_at"),
+  isDeleted: integer("is_deleted", { mode: "boolean" })
+    .notNull()
+    .default(false),
+  createdAt: text("created_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+  updatedAt: text("updated_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+});
+
+export const answers = sqliteTable("answers", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  questionId: integer("question_id")
+    .notNull()
+    .references(() => questions.id),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+  content: text("content").notNull(),
+  isDeleted: integer("is_deleted", { mode: "boolean" })
+    .notNull()
+    .default(false),
+  createdAt: text("created_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+  updatedAt: text("updated_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+});
