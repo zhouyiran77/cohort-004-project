@@ -86,7 +86,7 @@ export function NotificationBell({
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-md border border-sidebar-border bg-sidebar shadow-lg">
+        <div className="absolute left-0 top-full z-50 mt-2 w-80 rounded-md border border-sidebar-border bg-sidebar shadow-lg">
           <div className="flex items-center justify-between border-b border-sidebar-border px-4 py-3">
             <h3 className="text-sm font-semibold text-sidebar-foreground">
               Notifications
