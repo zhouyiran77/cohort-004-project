@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(npx tsc *)",
-      "Bash(npx pnpm *)"
+      "Bash(npx pnpm *)",
+      "Bash(npx pnpm run test )",
+      "Bash(npx pnpm run typecheck)"
     ],
     "deny": ["Bash(git push *)"]
   }

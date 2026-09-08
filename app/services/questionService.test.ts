@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { createTestDb, seedBaseData } from "~/test/setup";
 import * as schema from "~/db/schema";
+import { eq } from "drizzle-orm";
 
 let testDb: ReturnType<typeof createTestDb>;
 let base: ReturnType<typeof seedBaseData>;
@@ -101,13 +102,27 @@ describe("questionService", () => {
 
   describe("getQuestionsByLesson", () => {
     it("returns questions ordered by creation time desc", () => {
-      createQuestion(lessonId, base.user.id, "First question", "First content");
-      createQuestion(
+      const q1 = createQuestion(
+        lessonId,
+        base.user.id,
+        "First question",
+        "First content"
+      );
+
+      // Update the second question to have a later timestamp
+      const q2 = createQuestion(
         lessonId,
         base.user.id,
         "Second question",
         "Second content"
       );
+
+      // Manually update createdAt to ensure ordering (SQLite's datetime precision issue)
+      testDb
+        .update(schema.questions)
+        .set({ createdAt: new Date(Date.now() + 1000).toISOString() })
+        .where(eq(schema.questions.id, q2.id))
+        .run();
 
       const questions = getQuestionsByLesson(lessonId);
 
