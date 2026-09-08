@@ -57,4 +57,9 @@ export default [
   route("api/answers/update", "routes/api.answers.update.ts"),
   route("api/answers/delete", "routes/api.answers.delete.ts"),
   route("api/answers/accept", "routes/api.answers.accept.ts"),
+  route("api/notifications/mark-read", "routes/api.notifications.mark-read.ts"),
+  route(
+    "api/notifications/mark-all-read",
+    "routes/api.notifications.mark-all-read.ts"
+  ),
 ] satisfies RouteConfig;
