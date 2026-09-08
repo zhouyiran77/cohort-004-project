@@ -1,4 +1,10 @@
-import { sqliteTable, text, integer, real, uniqueIndex } from "drizzle-orm/sqlite-core";
+import {
+  sqliteTable,
+  text,
+  integer,
+  real,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 
 export enum UserRole {
   Student = "student",
@@ -239,24 +245,31 @@ export const coupons = sqliteTable("coupons", {
     .$defaultFn(() => new Date().toISOString()),
 });
 
-export const courseRatings = sqliteTable("course_ratings", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: integer("user_id")
-    .notNull()
-    .references(() => users.id),
-  courseId: integer("course_id")
-    .notNull()
-    .references(() => courses.id),
-  rating: integer("rating").notNull(),
-  createdAt: text("created_at")
-    .notNull()
-    .$defaultFn(() => new Date().toISOString()),
-  updatedAt: text("updated_at")
-    .notNull()
-    .$defaultFn(() => new Date().toISOString()),
-}, (table) => [
-  uniqueIndex("course_ratings_user_course_idx").on(table.userId, table.courseId),
-]);
+export const courseRatings = sqliteTable(
+  "course_ratings",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id),
+    courseId: integer("course_id")
+      .notNull()
+      .references(() => courses.id),
+    rating: integer("rating").notNull(),
+    createdAt: text("created_at")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+    updatedAt: text("updated_at")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+  },
+  (table) => [
+    uniqueIndex("course_ratings_user_course_idx").on(
+      table.userId,
+      table.courseId
+    ),
+  ]
+);
 
 export const videoWatchEvents = sqliteTable("video_watch_events", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -281,6 +294,10 @@ export enum QuestionStatus {
 export enum AcceptedByRole {
   Student = "student",
   Instructor = "instructor",
+}
+
+export enum NotificationType {
+  Enrollment = "enrollment",
 }
 
 export const questions = sqliteTable("questions", {
@@ -327,6 +344,21 @@ export const answers = sqliteTable("answers", {
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
   updatedAt: text("updated_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+});
+
+export const notifications = sqliteTable("notifications", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  recipientUserId: integer("recipient_user_id")
+    .notNull()
+    .references(() => users.id),
+  type: text("type").notNull().$type<NotificationType>(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  linkUrl: text("link_url").notNull(),
+  isRead: integer("is_read", { mode: "boolean" }).notNull().default(false),
+  createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
 });
