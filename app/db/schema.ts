@@ -298,6 +298,7 @@ export enum AcceptedByRole {
 
 export enum NotificationType {
   Enrollment = "enrollment",
+  CouponRedemption = "coupon_redemption",
 }
 
 export const questions = sqliteTable("questions", {

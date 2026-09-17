@@ -51,16 +51,19 @@ export async function loader({ request }: Route.LoaderArgs) {
       })
     : [];
 
-  // Load notifications for instructors only
-  const notifications =
-    currentUser && currentUser.role === UserRole.Instructor
-      ? getNotifications(currentUserId!, 5, 0)
-      : [];
+  // Load notifications for instructors and team admins
+  const userIsTeamAdmin = currentUserId ? isTeamAdmin(currentUserId) : false;
+  const shouldLoadNotifications =
+    currentUser &&
+    (currentUser.role === UserRole.Instructor || userIsTeamAdmin);
 
-  const unreadCount =
-    currentUser && currentUser.role === UserRole.Instructor
-      ? getUnreadCount(currentUserId!)
-      : 0;
+  const notifications = shouldLoadNotifications
+    ? getNotifications(currentUserId!, 5, 0)
+    : [];
+
+  const unreadCount = shouldLoadNotifications
+    ? getUnreadCount(currentUserId!)
+    : 0;
 
   return {
     users: users.map((u) => ({ id: u.id, name: u.name, role: u.role })),
@@ -76,7 +79,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     devCountry,
     countryTierInfo,
     countries: COUNTRIES,
-    isTeamAdmin: currentUserId ? isTeamAdmin(currentUserId) : false,
+    isTeamAdmin: userIsTeamAdmin,
     notifications,
     unreadCount,
   };

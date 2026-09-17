@@ -1,7 +1,17 @@
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, sql } from "drizzle-orm";
 import { db } from "~/db";
-import { coupons, purchases, enrollments } from "~/db/schema";
+import {
+  coupons,
+  purchases,
+  enrollments,
+  users,
+  courses,
+  teamMembers,
+  TeamMemberRole,
+  NotificationType,
+} from "~/db/schema";
 import crypto from "crypto";
+import { createNotification } from "~/services/notificationService";
 
 // ─── Coupon Service ───
 // Handles coupon generation, redemption (with validation), and listing.
@@ -115,5 +125,68 @@ export function redeemCoupon(
     .returning()
     .get();
 
+  // 6. Notify team admins
+  notifyTeamAdminsOfRedemption({
+    teamId: coupon.teamId,
+    courseId: coupon.courseId,
+    userId,
+  });
+
   return { ok: true, enrollment };
+}
+
+function notifyTeamAdminsOfRedemption(opts: {
+  teamId: number;
+  courseId: number;
+  userId: number;
+}) {
+  const { teamId, courseId, userId } = opts;
+
+  const redeemer = db
+    .select({ name: users.name })
+    .from(users)
+    .where(eq(users.id, userId))
+    .get();
+
+  const course = db
+    .select({ title: courses.title })
+    .from(courses)
+    .where(eq(courses.id, courseId))
+    .get();
+
+  if (!redeemer || !course) return;
+
+  const allCoupons = db
+    .select({ id: coupons.id, redeemedByUserId: coupons.redeemedByUserId })
+    .from(coupons)
+    .where(and(eq(coupons.teamId, teamId), eq(coupons.courseId, courseId)))
+    .all();
+
+  const totalSeats = allCoupons.length;
+  const remainingSeats = allCoupons.filter(
+    (c) => c.redeemedByUserId === null
+  ).length;
+
+  const admins = db
+    .select({ userId: teamMembers.userId })
+    .from(teamMembers)
+    .where(
+      and(
+        eq(teamMembers.teamId, teamId),
+        eq(teamMembers.role, TeamMemberRole.Admin)
+      )
+    )
+    .all();
+
+  const message = `${redeemer.name} redeemed a coupon for ${course.title} (${remainingSeats} of ${totalSeats} seats remaining)`;
+
+  for (const admin of admins) {
+    createNotification(
+      admin.userId,
+      NotificationType.CouponRedemption,
+      "Seat Claimed",
+      message,
+      "/team"
+    );
+  }
 }

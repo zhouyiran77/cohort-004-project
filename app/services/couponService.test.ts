@@ -275,4 +275,124 @@ describe("couponService", () => {
       expect(result.ok).toBe(true);
     });
   });
+
+  describe("coupon redemption notifications", () => {
+    function getNotifications() {
+      return testDb.select().from(schema.notifications).all();
+    }
+
+    it("creates a notification for the team admin on successful redemption", () => {
+      const { team, purchase } = setupTeamAndPurchase();
+      const [coupon] = generateCoupons(team.id, base.course.id, purchase.id, 1);
+      const redeemer = createRedeemer();
+
+      redeemCoupon(coupon.code, redeemer.id, "US");
+
+      const notifs = getNotifications();
+      expect(notifs).toHaveLength(1);
+      expect(notifs[0].recipientUserId).toBe(base.user.id);
+      expect(notifs[0].type).toBe(schema.NotificationType.CouponRedemption);
+      expect(notifs[0].title).toBe("Seat Claimed");
+      expect(notifs[0].linkUrl).toBe("/team");
+    });
+
+    it("includes redeemer name, course title, and seat counts in the message", () => {
+      const { team, purchase } = setupTeamAndPurchase();
+      const couponsCreated = generateCoupons(
+        team.id,
+        base.course.id,
+        purchase.id,
+        3
+      );
+      const redeemer = createRedeemer();
+
+      redeemCoupon(couponsCreated[0].code, redeemer.id, "US");
+
+      const notifs = getNotifications();
+      expect(notifs[0].message).toBe(
+        "Redeemer redeemed a coupon for Test Course (2 of 3 seats remaining)"
+      );
+    });
+
+    it("creates one notification per team admin", () => {
+      const { team, purchase } = setupTeamAndPurchase();
+      const secondAdmin = testDb
+        .insert(schema.users)
+        .values({
+          name: "Second Admin",
+          email: "admin2@example.com",
+          role: schema.UserRole.Student,
+        })
+        .returning()
+        .get();
+      testDb
+        .insert(schema.teamMembers)
+        .values({
+          teamId: team.id,
+          userId: secondAdmin.id,
+          role: schema.TeamMemberRole.Admin,
+        })
+        .run();
+
+      const [coupon] = generateCoupons(team.id, base.course.id, purchase.id, 1);
+      const redeemer = createRedeemer();
+
+      redeemCoupon(coupon.code, redeemer.id, "US");
+
+      const notifs = getNotifications();
+      expect(notifs).toHaveLength(2);
+      const recipientIds = notifs.map((n) => n.recipientUserId).sort();
+      expect(recipientIds).toEqual([base.user.id, secondAdmin.id].sort());
+    });
+
+    it("computes seat counts per course for the team", () => {
+      const { team, purchase } = setupTeamAndPurchase();
+      const secondCourse = testDb
+        .insert(schema.courses)
+        .values({
+          title: "Other Course",
+          slug: "other-course",
+          description: "Another course",
+          instructorId: base.instructor.id,
+          categoryId: base.category.id,
+          status: schema.CourseStatus.Published,
+        })
+        .returning()
+        .get();
+
+      generateCoupons(team.id, base.course.id, purchase.id, 5);
+      const otherCoupons = generateCoupons(
+        team.id,
+        secondCourse.id,
+        purchase.id,
+        2
+      );
+      const redeemer = createRedeemer();
+
+      redeemCoupon(otherCoupons[0].code, redeemer.id, "US");
+
+      const notifs = getNotifications();
+      expect(notifs[0].message).toContain("1 of 2 seats remaining");
+    });
+
+    it("does not create notifications on failed redemption", () => {
+      const { team, purchase } = setupTeamAndPurchase();
+      const [coupon] = generateCoupons(team.id, base.course.id, purchase.id, 1);
+      const redeemer = createRedeemer();
+
+      redeemCoupon(coupon.code, redeemer.id, "US");
+      const countAfterFirst = getNotifications().length;
+
+      const result = redeemCoupon(coupon.code, redeemer.id, "US");
+      expect(result.ok).toBe(false);
+
+      expect(getNotifications()).toHaveLength(countAfterFirst);
+    });
+
+    it("does not create notifications when coupon is not found", () => {
+      redeemCoupon("nonexistent-code", 999, "US");
+
+      expect(getNotifications()).toHaveLength(0);
+    });
+  });
 });
