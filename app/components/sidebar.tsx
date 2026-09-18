@@ -5,6 +5,7 @@ import { UserRole } from "~/db/schema";
 import { UserAvatar } from "~/components/user-avatar";
 import { NotificationBell } from "~/components/notification-bell";
 import {
+  BarChart3,
   BookOpen,
   LayoutDashboard,
   GraduationCap,
@@ -78,6 +79,12 @@ const navItems: NavItem[] = [
     label: "My Courses",
     to: "/instructor",
     icon: <GraduationCap className="size-4" />,
+    roles: [UserRole.Instructor],
+  },
+  {
+    label: "Analytics",
+    to: "/instructor/analytics",
+    icon: <BarChart3 className="size-4" />,
     roles: [UserRole.Instructor],
   },
   {

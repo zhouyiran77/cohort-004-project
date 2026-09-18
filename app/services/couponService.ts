@@ -1,4 +1,4 @@
-import { eq, and, isNull, sql } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { db } from "~/db";
 import {
   coupons,
