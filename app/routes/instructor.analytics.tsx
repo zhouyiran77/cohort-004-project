@@ -1,20 +1,16 @@
-import {
-  Link,
-  useSearchParams,
-  data,
-  isRouteErrorResponse,
-} from "react-router";
+import { Link, data, isRouteErrorResponse } from "react-router";
 import type { Route } from "./+types/instructor.analytics";
 import { getCurrentUserId } from "~/lib/session";
 import { getUserById } from "~/services/userService";
 import { UserRole } from "~/db/schema";
 import {
   getAnalyticsSummary,
+  getRevenueTimeSeries,
+  getPerCourseBreakdown,
   type TimePeriod,
 } from "~/services/analyticsService";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { AlertTriangle, TrendingUp, Users, Star } from "lucide-react";
-import { formatPrice } from "~/lib/utils";
+import { AnalyticsDashboard } from "~/components/analytics-dashboard";
+import { AlertTriangle } from "lucide-react";
 import { z } from "zod";
 
 const periodSchema = z.enum(["7d", "30d", "12m", "all"]).catch("30d");
@@ -49,130 +45,29 @@ export async function loader({ request }: Route.LoaderArgs) {
   ) as TimePeriod;
 
   const summary = getAnalyticsSummary(currentUserId, period);
+  const timeSeries = getRevenueTimeSeries(currentUserId, period);
+  const courseBreakdown = getPerCourseBreakdown(currentUserId, period);
 
-  return { summary, period };
+  return { summary, timeSeries, courseBreakdown, period };
 }
-
-const PERIOD_OPTIONS = [
-  { value: "7d" as const, label: "7 days" },
-  { value: "30d" as const, label: "30 days" },
-  { value: "12m" as const, label: "12 months" },
-  { value: "all" as const, label: "All time" },
-];
 
 export default function InstructorAnalytics({
   loaderData,
 }: Route.ComponentProps) {
-  const { summary, period } = loaderData;
-  const [searchParams] = useSearchParams();
+  const { summary, timeSeries, courseBreakdown, period } = loaderData;
 
   return (
-    <div className="mx-auto max-w-7xl p-6 lg:p-8">
-      <nav className="mb-6 text-sm text-muted-foreground">
-        <Link to="/" className="hover:text-foreground">
-          Home
-        </Link>
-        <span className="mx-2">/</span>
-        <Link to="/instructor" className="hover:text-foreground">
-          My Courses
-        </Link>
-        <span className="mx-2">/</span>
-        <span className="text-foreground">Analytics</span>
-      </nav>
-
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Analytics</h1>
-        <p className="mt-1 text-muted-foreground">
-          Track your revenue and course performance
-        </p>
-      </div>
-
-      <div className="mb-6 flex gap-2">
-        {PERIOD_OPTIONS.map((option) => {
-          const params = new URLSearchParams(searchParams);
-          params.set("period", option.value);
-          const isActive = period === option.value;
-
-          return (
-            <Link
-              key={option.value}
-              to={`?${params.toString()}`}
-              className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-                isActive
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              }`}
-            >
-              {option.label}
-            </Link>
-          );
-        })}
-      </div>
-
-      {summary.totalRevenue === 0 &&
-      summary.totalEnrollments === 0 &&
-      summary.ratingCount === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <TrendingUp className="mb-4 size-12 text-muted-foreground/50" />
-          <h2 className="text-lg font-medium">No data yet</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Publish a course to start tracking analytics.
-          </p>
-        </div>
-      ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Revenue
-              </CardTitle>
-              <TrendingUp className="size-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {formatPrice(summary.totalRevenue)}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Enrollments
-              </CardTitle>
-              <Users className="size-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {summary.totalEnrollments}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Average Rating
-              </CardTitle>
-              <Star className="size-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {summary.averageRating !== null
-                  ? summary.averageRating.toFixed(1)
-                  : "—"}
-              </div>
-              {summary.ratingCount > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  {summary.ratingCount}{" "}
-                  {summary.ratingCount === 1 ? "rating" : "ratings"}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      )}
-    </div>
+    <AnalyticsDashboard
+      summary={summary}
+      timeSeries={timeSeries}
+      courseBreakdown={courseBreakdown}
+      period={period}
+      breadcrumbs={[
+        { label: "Home", to: "/" },
+        { label: "My Courses", to: "/instructor" },
+        { label: "Analytics" },
+      ]}
+    />
   );
 }
 
